@@ -1,0 +1,10 @@
+{
+    "dataset_name": "MathArena/hmmt_nov_2025",
+    "split": "train",
+    "is_local": false,
+    "system_prompt": "Please reason step by step, and put your final answer within \\boxed{}.",
+    "problem_field": "problem",
+    "answer_field": "answer"
+  }
+  
+  

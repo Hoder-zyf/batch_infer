@@ -1,0 +1,10 @@
+{
+    "dataset_name": "meituan-longcat/AMO-Bench",
+    "split": "test",
+    "is_local": false,
+    "system_prompt": "After solving the above problem, please output your final answer in the following format:\n### The final answer is: $\\boxed{<your answer>}$\nExample:\n### The final answer is: $\\boxed{123}$\nThe final answer should be given as precisely as possible (using LaTeX symbols such as \\sqrt, \\frac, \\pi, etc.). If the final answer involves a decimal approximation, it must be accurate to at least four decimal places.",
+    "problem_field": "prompt",
+    "answer_field": "answer"
+  }
+  
+  
