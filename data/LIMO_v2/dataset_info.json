@@ -1,0 +1,12 @@
+{
+  "limo_v2": {
+    "file_name": "train.jsonl",
+    "formatting": "alpaca",
+    "columns": {
+      "prompt": "instruction",
+      "query": "input",
+      "response": "output",
+      "system": "system"
+    }
+  }
+}
