@@ -1,0 +1,45 @@
+### model
+model_name_or_path: Qwen/Qwen3-32B
+
+### method
+stage: sft
+do_train: true
+finetuning_type: full
+deepspeed: examples/deepspeed/ds_z3_config.json
+flash_attn: fa2
+
+### dataset
+dataset_path: ~/yifei/batch_infer/data/LIMO_v2
+dataset_name: limo_v2
+cutoff_len: 16384
+overwrite_cache: true
+preprocessing_num_workers: 64
+template: qwen3
+
+### output
+output_dir: ~/yifei/models/qwen3_32b_sft_limo_v2_1122
+logging_steps: 10
+save_strategy: epoch
+plot_loss: true
+overwrite_output_dir: true
+
+### train
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 1
+learning_rate: 5.0e-6
+num_train_epochs: 15
+lr_scheduler_type: cosine
+warmup_ratio: 0.0
+bf16: true
+ddp_timeout: 180000000
+
+## eval
+val_size: 50
+evaluation_strategy: epoch
+per_device_eval_batch_size: 1
+
+
+# swanlab
+use_swanlab: true
+swanlab_project: limo_v2
+swanlab_run_name: Qwen-3-32B-sft-limo-v2-1122
