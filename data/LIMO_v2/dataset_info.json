@@ -8,5 +8,25 @@
       "response": "output",
       "system": "system"
     }
+  },
+  "limo_v2_small": {
+    "file_name": "train_subset_40.jsonl",
+    "formatting": "alpaca",
+    "columns": {
+      "prompt": "instruction",
+      "query": "input",
+      "response": "output",
+      "system": "system"
+    }
+  },
+  "val": {
+    "file_name": "val.jsonl",
+    "formatting": "alpaca",
+    "columns": {
+      "prompt": "instruction",
+      "query": "input",
+      "response": "output",
+      "system": "system"
+    }
   }
 }

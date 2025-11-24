@@ -13,21 +13,46 @@
 # limitations under the License.
 
 import bisect
-from typing import List, Sequence, Tuple
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, Optional
 
 
-def search_for_fit(numbers: Sequence[int], capacity: int) -> int:
-    r"""
-    Finds the index of largest number that fits into the knapsack with the given capacity.
-    """
+if TYPE_CHECKING:
+    from transformers import PreTrainedTokenizer, ProcessorMixin
+
+    from ...hparams import DataArguments
+    from ..template import Template
+
+
+@dataclass
+class DatasetProcessor(ABC):
+    r"""A class for data processors."""
+
+    template: "Template"
+    tokenizer: "PreTrainedTokenizer"
+    processor: Optional["ProcessorMixin"]
+    data_args: "DataArguments"
+
+    @abstractmethod
+    def preprocess_dataset(self, examples: dict[str, list[Any]]) -> dict[str, list[Any]]:
+        r"""Build model inputs from the examples."""
+        ...
+
+    @abstractmethod
+    def print_data_example(self, example: dict[str, list[int]]) -> None:
+        r"""Print a data example to stdout."""
+        ...
+
+
+def search_for_fit(numbers: list[int], capacity: int) -> int:
+    r"""Find the index of largest number that fits into the knapsack with the given capacity."""
     index = bisect.bisect(numbers, capacity)
     return -1 if index == 0 else (index - 1)
 
 
-def greedy_knapsack(numbers: List[int], capacity: int) -> List[List[int]]:
-    r"""
-    An efficient greedy algorithm with binary search for the knapsack problem.
-    """
+def greedy_knapsack(numbers: list[int], capacity: int) -> list[list[int]]:
+    r"""Implement efficient greedy algorithm with binary search for the knapsack problem."""
     numbers.sort()  # sort numbers in ascending order for binary search
     knapsacks = []
 
@@ -48,10 +73,8 @@ def greedy_knapsack(numbers: List[int], capacity: int) -> List[List[int]]:
     return knapsacks
 
 
-def infer_seqlen(source_len: int, target_len: int, cutoff_len: int) -> Tuple[int, int]:
-    r"""
-    Computes the real sequence length after truncation by the cutoff_len.
-    """
+def infer_seqlen(source_len: int, target_len: int, cutoff_len: int) -> tuple[int, int]:
+    r"""Compute the real sequence length after truncation by the cutoff_len."""
     if target_len * 2 < cutoff_len:  # truncate source
         max_target_len = cutoff_len
     elif source_len * 2 < cutoff_len:  # truncate target

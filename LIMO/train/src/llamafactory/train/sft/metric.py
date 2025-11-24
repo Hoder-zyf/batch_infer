@@ -1,4 +1,4 @@
-# Copyright 2024 HuggingFace Inc., THUDM, and the LlamaFactory team.
+# Copyright 2025 HuggingFace Inc., THUDM, and the LlamaFactory team.
 #
 # This code is inspired by the HuggingFace's transformers library and the THUDM's ChatGLM implementation.
 # https://github.com/huggingface/transformers/blob/v4.40.0/examples/pytorch/summarization/run_summarization.py
@@ -22,11 +22,11 @@ import json
 
 import numpy as np
 import torch
-from transformers.utils import is_jieba_available, is_nltk_available
+from transformers.utils import is_nltk_available
 
 from ...extras.constants import IGNORE_INDEX
 from ...extras.misc import numpify
-from ...extras.packages import is_rouge_available
+from ...extras.packages import is_jieba_available, is_rouge_available
 
 
 if TYPE_CHECKING:
@@ -38,17 +38,15 @@ if is_jieba_available():
 
 
 if is_nltk_available():
-    from nltk.translate.bleu_score import SmoothingFunction, sentence_bleu
+    from nltk.translate.bleu_score import SmoothingFunction, sentence_bleu  # type: ignore
 
 
 if is_rouge_available():
-    from rouge_chinese import Rouge
+    from rouge_chinese import Rouge  # type: ignore
 
 
 def eval_logit_processor(logits: "torch.Tensor", labels: "torch.Tensor") -> "torch.Tensor":
-    r"""
-    Computes the token with the largest likelihood to reduce memory footprint.
-    """
+    r"""Compute the token with the largest likelihood to reduce memory footprint."""
     if isinstance(logits, (list, tuple)):
         if logits[0].dim() == 3:  # (batch_size, seq_len, vocab_size)
             logits = logits[0]
@@ -63,11 +61,9 @@ def eval_logit_processor(logits: "torch.Tensor", labels: "torch.Tensor") -> "tor
 
 @dataclass
 class ComputeAccuracy:
-    r"""
-    Computes accuracy and supports `batch_eval_metrics`.
-    """
+    r"""Compute accuracy and support `batch_eval_metrics`."""
 
-    def _dump(self) -> Optional[Dict[str, float]]:
+    def _dump(self) -> Optional[dict[str, float]]:
         result = None
         if hasattr(self, "score_dict"):
             result = {k: float(np.mean(v)) for k, v in self.score_dict.items()}
@@ -78,7 +74,7 @@ class ComputeAccuracy:
     def __post_init__(self):
         self._dump()
 
-    def __call__(self, eval_preds: "EvalPrediction", compute_result: bool = True) -> Optional[Dict[str, float]]:
+    def __call__(self, eval_preds: "EvalPrediction", compute_result: bool = True) -> Optional[dict[str, float]]:
         preds, labels = numpify(eval_preds.predictions), numpify(eval_preds.label_ids)
         for i in range(len(preds)):
             pred, label = preds[i, :-1], labels[i, 1:]
@@ -91,15 +87,14 @@ class ComputeAccuracy:
 
 @dataclass
 class ComputeSimilarity:
-    r"""
-    Computes text similarity scores and supports `batch_eval_metrics`.
+    r"""Compute text similarity scores and support `batch_eval_metrics`.
 
     Wraps the tokenizer into metric functions, used in CustomSeq2SeqTrainer.
     """
 
     tokenizer: "PreTrainedTokenizer"
 
-    def _dump(self) -> Optional[Dict[str, float]]:
+    def _dump(self) -> Optional[dict[str, float]]:
         result = None
         if hasattr(self, "score_dict"):
             result = {k: float(np.mean(v)) for k, v in self.score_dict.items()}
@@ -110,7 +105,7 @@ class ComputeSimilarity:
     def __post_init__(self):
         self._dump()
 
-    def __call__(self, eval_preds: "EvalPrediction", compute_result: bool = True) -> Optional[Dict[str, float]]:
+    def __call__(self, eval_preds: "EvalPrediction", compute_result: bool = True) -> Optional[dict[str, float]]:
         preds, labels = numpify(eval_preds.predictions), numpify(eval_preds.label_ids)
 
         preds = np.where(preds != IGNORE_INDEX, preds, self.tokenizer.pad_token_id)
@@ -193,6 +188,7 @@ class ComputeJudgeScore:
             """
             
             try:
+                print(f"[Judge] Evaluating example...", flush=True)
                 response = self.client.chat.completions.create(
                     model=self.model_name,
                     messages=[
@@ -201,7 +197,8 @@ class ComputeJudgeScore:
                     ],
                     temperature=0.0,
                     max_tokens=512,
-                    response_format={"type": "json_object"}
+                    response_format={"type": "json_object"},
+                    timeout=30.0
                 )
                 judge_output_str = response.choices[0].message.content.strip()
                 judge_output = json.loads(judge_output_str)
@@ -212,7 +209,7 @@ class ComputeJudgeScore:
                 
                 # Log the first few examples
                 if len(self.score_dict["judge_accuracy"]) <= 5:
-                    print(f"\n[Judge] Correct: {is_correct} | Reasoning: {reasoning}")
+                    print(f"[Judge] Correct: {is_correct} | Reasoning: {reasoning}", flush=True)
 
                 # Save detailed result
                 # We need a place to save. Since we don't have easy access to output_dir here without passing it,
