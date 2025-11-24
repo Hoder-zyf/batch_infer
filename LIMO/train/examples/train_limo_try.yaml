@@ -1,24 +1,24 @@
 ### model
-model_name_or_path: Qwen/Qwen3-32B
+model_name_or_path: Qwen/Qwen3-1.7B
 
 ### method
 stage: sft
 do_train: true
 finetuning_type: full
-deepspeed: examples/deepspeed/ds_z3_config.json
+deepspeed: /data/userdata/v-zhangyifei/scripts/LIMO/train/examples/deepspeed/ds_z3_config.json
 flash_attn: fa2
 
 ### dataset
-dataset_dir: /yifei/batch_infer/data/LIMO_v2
-dataset: limo_v2
+dataset_dir: /data/userdata/v-zhangyifei/scripts/data/LIMO_v2
+dataset: limo_v2_small
 cutoff_len: 16384
 overwrite_cache: true
 preprocessing_num_workers: 64
 template: qwen3
 
 ### output
-output_dir: /yifei/models/qwen3_32b_sft_limo_v2_1122
-logging_steps: 10
+output_dir: /data/userdata/v-zhangyifei/models/
+logging_steps: 1
 save_strategy: epoch
 plot_loss: true
 overwrite_output_dir: true
@@ -34,17 +34,17 @@ bf16: true
 ddp_timeout: 180000000
 
 ## eval
-val_size: 50
+val_size: 5
 eval_strategy: epoch
 per_device_eval_batch_size: 1
 predict_with_generate: true
 eval_use_judge: true
-eval_judge_api_base: "https://api.openai.com/v1" # Replace with your API base
-eval_judge_api_key: "sk-..." # Replace with your API key
-eval_judge_model: "gpt-4o" # Replace with your judge model
+eval_judge_api_base: "https://api.shubiaobiao.cn/v1" # Replace with your API base
+eval_judge_api_key: "sk-Eyb97VOZ3YYcTkSiD6631064CcD3482f9e5035CdA4E204C0" # Replace with your API key
+eval_judge_model: "gpt-4.1" # Replace with your judge model
 
 
 # swanlab
 use_swanlab: true
-swanlab_project: limo_v2
-swanlab_run_name: Qwen-3-32B-sft-limo-v2-1122
+swanlab_project: limo_try
+swanlab_run_name: try_qwen1.7b

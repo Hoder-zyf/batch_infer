@@ -17,7 +17,8 @@
 # limitations under the License.
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Dict, Optional
+from typing import TYPE_CHECKING, Dict, Optional, Any
+import json
 
 import numpy as np
 import torch
@@ -134,6 +135,114 @@ class ComputeSimilarity:
 
             bleu_score = sentence_bleu([list(label)], list(pred), smoothing_function=SmoothingFunction().method3)
             self.score_dict["bleu-4"].append(round(bleu_score * 100, 4))
+
+        if compute_result:
+            return self._dump()
+
+
+@dataclass
+class ComputeJudgeScore:
+    r"""
+    Computes accuracy scores using an external LLM judge.
+    """
+
+    tokenizer: "PreTrainedTokenizer"
+    judge_args: Dict[str, Any]
+
+    def _dump(self) -> Optional[Dict[str, float]]:
+        result = None
+        if hasattr(self, "score_dict"):
+            result = {k: float(np.mean(v)) for k, v in self.score_dict.items()}
+
+        self.score_dict = {"judge_accuracy": []}
+        return result
+
+    def __post_init__(self):
+        self._dump()
+        from openai import OpenAI
+        
+        self.client = OpenAI(
+            api_key=self.judge_args.get("eval_judge_api_key", "not-needed"),
+            base_url=self.judge_args.get("eval_judge_api_base"),
+        )
+        self.model_name = self.judge_args.get("eval_judge_model")
+
+    def __call__(self, eval_preds: "EvalPrediction", compute_result: bool = True) -> Optional[Dict[str, float]]:
+        preds, labels = numpify(eval_preds.predictions), numpify(eval_preds.label_ids)
+
+        preds = np.where(preds != IGNORE_INDEX, preds, self.tokenizer.pad_token_id)
+        labels = np.where(labels != IGNORE_INDEX, labels, self.tokenizer.pad_token_id)
+
+        decoded_preds = self.tokenizer.batch_decode(preds, skip_special_tokens=True)
+        decoded_labels = self.tokenizer.batch_decode(labels, skip_special_tokens=True)
+
+        for pred, label in zip(decoded_preds, decoded_labels):
+            # Simple prompt for math problem judging
+            prompt = f"""
+            Please evaluate if the student's answer is correct based on the ground truth.
+            
+            Student Answer:
+            {pred}
+            
+            Ground Truth:
+            {label}
+            
+            Please provide your evaluation in JSON format with the following keys:
+            - reasoning: A brief explanation of your evaluation.
+            - correct: boolean (true or false) indicating if the answer is correct.
+            """
+            
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model_name,
+                    messages=[
+                        {"role": "system", "content": "You are a helpful math teacher. You must output JSON."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.0,
+                    max_tokens=512,
+                    response_format={"type": "json_object"}
+                )
+                judge_output_str = response.choices[0].message.content.strip()
+                judge_output = json.loads(judge_output_str)
+                is_correct = judge_output.get("correct", False)
+                reasoning = judge_output.get("reasoning", "No reasoning provided")
+                
+                self.score_dict["judge_accuracy"].append(1.0 if is_correct else 0.0)
+                
+                # Log the first few examples
+                if len(self.score_dict["judge_accuracy"]) <= 5:
+                    print(f"\n[Judge] Correct: {is_correct} | Reasoning: {reasoning}")
+
+                # Save detailed result
+                # We need a place to save. Since we don't have easy access to output_dir here without passing it,
+                # we will try to use the one passed in judge_args if available, or default to current dir.
+                # However, judge_args comes from finetuning_args.to_dict(), which might not have output_dir unless we added it.
+                # But we can just use a fixed filename in the current working directory or try to find the output dir.
+                # For now, let's append to "judge_results.jsonl" in the current directory, 
+                # or better, use the `output_dir` from `judge_args` if we can pass it.
+                # `finetuning_args` doesn't have `output_dir`. `training_args` does.
+                # We only passed `finetuning_args` to `ComputeJudgeScore`.
+                
+                # Let's just save to "judge_results.jsonl" in the current directory for now, 
+                # or we can try to infer the output directory. 
+                # Actually, `metric.py` is usually run in the context where we might want to save to the experiment folder.
+                # But without `output_dir` passed explicitly, we can't be sure.
+                # Let's assume the user runs this from the script root.
+                
+                result_entry = {
+                    "prediction": pred,
+                    "ground_truth": label,
+                    "judge_output": judge_output,
+                    "score": 1.0 if is_correct else 0.0
+                }
+                
+                with open("judge_results.jsonl", "a", encoding="utf-8") as f:
+                    f.write(json.dumps(result_entry, ensure_ascii=False) + "\n")
+                    
+            except Exception as e:
+                print(f"Judge error: {e}")
+                self.score_dict["judge_accuracy"].append(0.0)
 
         if compute_result:
             return self._dump()

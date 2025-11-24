@@ -386,8 +386,39 @@ class SwanLabArguments:
 
 
 @dataclass
+class JudgeArguments:
+    r"""
+    Arguments pertaining to the LLM-based judge evaluation.
+    """
+
+    eval_use_judge: bool = field(
+        default=False,
+        metadata={"help": "Whether or not to use an external LLM as a judge for evaluation."},
+    )
+    eval_judge_api_base: Optional[str] = field(
+        default=None,
+        metadata={"help": "The base URL for the judge LLM API."},
+    )
+    eval_judge_api_key: Optional[str] = field(
+        default=None,
+        metadata={"help": "The API key for the judge LLM API."},
+    )
+    eval_judge_model: Optional[str] = field(
+        default=None,
+        metadata={"help": "The model name for the judge LLM."},
+    )
+
+
+@dataclass
 class FinetuningArguments(
-    FreezeArguments, LoraArguments, RLHFArguments, GaloreArguments, ApolloArguments, BAdamArgument, SwanLabArguments
+    FreezeArguments,
+    LoraArguments,
+    RLHFArguments,
+    GaloreArguments,
+    ApolloArguments,
+    BAdamArgument,
+    SwanLabArguments,
+    JudgeArguments,
 ):
     r"""
     Arguments pertaining to which techniques we are going to fine-tuning with.
